@@ -28,9 +28,9 @@ function get_remote_url()
 
 function make_pull_request()
 {
-    local current_branch
-    current_branch="$(git rev-parse --abbrev-ref HEAD)"
-    if [ "$current_branch" == master ] || [ "$current_branch" == main ]; then
+    local branch
+    branch="$(git rev-parse --abbrev-ref HEAD)"
+    if [ "$branch" == master ] || [ "$branch" == main ]; then
         echo "You tried to make a PR from your $branch branch. It's usually a bad idea."
         echo ""
         echo "Ideally, you would have made a new branch before you started working on this"
