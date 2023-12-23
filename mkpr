@@ -5,27 +5,6 @@ cd "$(git rev-parse --show-toplevel)"
 PROGRAM_NAME="$(basename "$0")"
 
 
-function get_remote_url()
-{
-    local remote="$1"
-    if [ "$remote" == "" ]; then
-        remote="origin"
-    fi
-
-    local url
-    url="$(git config "remote.$remote.url")"
-
-    # I often set remote URL to "https://akuli@github.com/..." so that I
-    # don't need to write my username when pushing.
-    if [[ "$url" =~ ^(https://)[^@/]+@ ]]; then
-        # https://stackoverflow.com/a/15149278/5806943
-        url="https://${url#*@}"
-    fi
-
-    echo "$url"
-}
-
-
 function make_pull_request()
 {
     local branch
@@ -57,7 +36,7 @@ function make_pull_request()
     git push --set-upstream "$remote" "$branch"
 
     # Try not to spam terminal with anything that web browser prints
-    open "$(get_remote_url "$remote")/pull/new/$branch" >&/dev/null &
+    open "$(git config remote.$remote.url)/pull/new/$branch" >&/dev/null &
     disown
 }
 
@@ -75,7 +54,7 @@ function push_with_pr_number()
 {
     local prnum="$1"
 
-    if ! [[ "$(get_remote_url)" =~ ^https://github.com/([^/]+)/([^/]+) ]]; then
+    if ! [[ "$(git config remote.origin.url)" =~ ^https://github.com/([^/]+)/([^/]+) ]]; then
         echo "$0: failed to get github user and repo from git config"
         exit 1
     fi
