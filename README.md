@@ -14,7 +14,7 @@ This pushes your commit to GitHub and opens a browser window for creating the pu
 
 This script also makes working on other people's pull requests easier.
 [There are commands to do that on stackoverflow](https://stackoverflow.com/a/59704540/5806943),
-but this script makes using them more convenient.
+but this script is more convenient.
 You don't need to add every contributor as a remote, for example.
 Here's how you work on pull request 123, created by someone else to a repository that you maintain:
 
