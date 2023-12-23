@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e -o pipefail
 
-cd "$(git rev-parse --show-toplevel)"
 PROGRAM_NAME="$(basename "$0")"
 
 
@@ -43,9 +42,7 @@ function make_pull_request()
 
 function checkout_with_pr_number()
 {
-    local prnum="$1"
-
-    git fetch origin pull/$prnum/head
+    git fetch origin "pull/$1/head"
     git checkout FETCH_HEAD
 }
 
@@ -61,12 +58,19 @@ function push_with_pr_number()
     local owner="${BASH_REMATCH[1]}"
     local repo="${BASH_REMATCH[2]}"
 
-    local json="$(mktemp)"
+    local json
+    json="$(mktemp)"
+
+    # shellcheck disable=SC2064
     trap "rm -f -- '$json'" EXIT
 
     curl -s -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$owner/$repo/pulls/$prnum" > "$json"
-    local pr_repo="$(jq -r .head.repo.clone_url "$json")"
-    local pr_branch="$(jq -r .head.ref "$json")"
+
+    local pr_repo
+    pr_repo="$(jq -r .head.repo.clone_url "$json")"
+
+    local pr_branch
+    pr_branch="$(jq -r .head.ref "$json")"
 
     echo "Pushing to branch '$pr_branch' at $pr_repo"
     git push "$pr_repo" "HEAD:$pr_branch"
@@ -77,10 +81,10 @@ function push_with_pr_number()
 
 if [ $# == 0 ]; then
     make_pull_request
-elif [ $# == 2 ] && [ "$1" == "checkout" ] && [ "$2" =~ ^[0-9]+$ ]; then
-    checkout_with_pr_number $2
-elif [ $# == 2 ] && [ "$1" == "push" ] && [ "$2" =~ ^[0-9]+$ ]; then
-    push_with_pr_number $2
+elif [ $# == 2 ] && [ "$1" == "checkout" ] && [[ "$2" =~ ^[0-9]+$ ]]; then
+    checkout_with_pr_number "$2"
+elif [ $# == 2 ] && [ "$1" == "push" ] && [[ "$2" =~ ^[0-9]+$ ]]; then
+    push_with_pr_number "$2"
 else
     echo "Usage:"
     echo "  $PROGRAM_NAME               # make pull request"
