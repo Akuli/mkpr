@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+set -e -o pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+PROGRAM_NAME="$(basename "$0")"
+
+
+function get_remote_url()
+{
+    local remote="$1"
+    if [ "$remote" == "" ]; then
+        remote="origin"
+    fi
+
+    local url
+    url="$(git config "remote.$remote.url")"
+
+    # I often set remote URL to "https://akuli@github.com/..." so that I
+    # don't need to write my username when pushing.
+    if [[ "$url" =~ ^(https://)[^@/]+@ ]]; then
+        # https://stackoverflow.com/a/15149278/5806943
+        url="https://${url#*@}"
+    fi
+
+    echo "$url"
+}
+
+
+function make_pull_request()
+{
+    local current_branch
+    current_branch="$(git rev-parse --abbrev-ref HEAD)"
+    if [ "$current_branch" == master ] || [ "$current_branch" == main ]; then
+        echo "You tried to make a PR from your $branch branch. It's usually a bad idea."
+        echo ""
+        echo "Ideally, you would have made a new branch before you started working on this"
+        echo "pull request, but you can still do so:"
+        echo ""
+        echo "    \$ git checkout -b name-of-new-branch"
+        echo "    \$ git branch -D $branch   # contains commits that are now on new branch"
+        echo "    \$ $PROGRAM_NAME"
+        echo ""
+        exit 1
+    fi
+
+    # I have two remotes "me" and "origin" in some repos I forked.
+    # The "me" remote is my fork. Create pull request there if it exists.
+    #
+    # This only applies to creating a new PR. For most things the actual repo is better.
+    local remote
+    if git config --get remote.me.url >/dev/null; then
+        remote=me
+    else
+        remote=origin
+    fi
+
+    git push --set-upstream "$remote" "$branch"
+
+    # Try not to spam terminal with anything that web browser prints
+    open "$(get_remote_url "$remote")/pull/new/$branch" >&/dev/null &
+    disown
+}
+
+
+function checkout_with_pr_number()
+{
+    local prnum="$1"
+
+    git fetch origin pull/$prnum/head
+    git checkout FETCH_HEAD
+}
+
+
+function push_with_pr_number()
+{
+    local prnum="$1"
+
+    if ! [[ "$(get_remote_url)" =~ ^https://github.com/([^/]+)/([^/]+) ]]; then
+        echo "$0: failed to get github user and repo from git config"
+        exit 1
+    fi
+    local owner="${BASH_REMATCH[1]}"
+    local repo="${BASH_REMATCH[2]}"
+
+    local json="$(mktemp)"
+    trap "rm -f -- '$json'" EXIT
+
+    curl -s -L -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$owner/$repo/pulls/$prnum" > "$json"
+    local pr_repo="$(jq -r .head.repo.clone_url "$json")"
+    local pr_branch="$(jq -r .head.ref "$json")"
+
+    echo "Pushing to branch '$pr_branch' at $pr_repo"
+    git push "$pr_repo" "HEAD:$pr_branch"
+
+    rm "$json"
+}
+
+
+if [ $# == 0 ]; then
+    make_pull_request
+elif [ $# == 2 ] && [ "$1" == "checkout" ] && [ "$2" =~ ^[0-9]+$ ]; then
+    checkout_with_pr_number $2
+elif [ $# == 2 ] && [ "$1" == "push" ] && [ "$2" =~ ^[0-9]+$ ]; then
+    push_with_pr_number $2
+else
+    echo "Usage:"
+    echo "  $PROGRAM_NAME               # make pull request"
+    echo "  $PROGRAM_NAME checkout 123  # look at else's pull request locally"
+    echo "  $PROGRAM_NAME push 123      # push your commits into someone else's pull request"
+fi
