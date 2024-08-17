@@ -32,6 +32,9 @@ function make_pull_request()
         remote=origin
     fi
 
+    printf "Pushing the '%s' branch to " "$branch"
+    git config --get "remote.$remote.url"
+
     git push --set-upstream "$remote" "$branch"
 
     # Try not to spam terminal with anything that web browser prints
