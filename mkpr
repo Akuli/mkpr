@@ -51,12 +51,12 @@ function push_with_pr_number()
 {
     local prnum="$1"
 
-    if ! [[ "$(git config remote.origin.url)" =~ ^https://github.com/([^/]+)/([^/]+) ]]; then
+    if ! [[ "$(git config remote.origin.url)" =~ ^https://(([^/@]+)@)?github.com/([^/]+)/([^/]+) ]]; then
         echo "$PROGRAM_NAME: failed to get github user and repo from git config"
         exit 1
     fi
-    local owner="${BASH_REMATCH[1]}"
-    local repo="${BASH_REMATCH[2]}"
+    local owner="${BASH_REMATCH[3]}"
+    local repo="${BASH_REMATCH[4]}"
 
     local json
     json="$(mktemp)"
