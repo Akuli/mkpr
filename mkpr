@@ -35,8 +35,8 @@ function make_pull_request()
     git push --set-upstream "$remote" "$branch"
 
     # Figure out URL for creating pull request in web browser
-    local repo_url="$(git config remote.$remote.url)"
-    local pr_url
+    local repo_url pr_url
+    repo_url="$(git config remote.$remote.url)"
     case "$repo_url" in
         https://*github.com/*/*)
             pr_url="$repo_url/pull/new/$branch"
