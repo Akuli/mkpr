@@ -34,8 +34,23 @@ function make_pull_request()
 
     git push --set-upstream "$remote" "$branch"
 
+    # Figure out URL for creating pull request in web browser
+    local repo_url="$(git config remote.$remote.url)"
+    local pr_url
+    case "$repo_url" in
+        https://*github.com/*/*)
+            pr_url="$repo_url/pull/new/$branch"
+            ;;
+        https://*gitlab.*/*/*)
+            pr_url="$repo_url/-/merge_requests/new?merge_request%5Bsource_branch%5D=$branch"
+            ;;
+        *)
+            echo "Error: don't know how to create pull request to $repo_url"
+            exit 1
+    esac
+
     # Try not to spam terminal with anything that web browser prints
-    open "$(git config remote.$remote.url)/pull/new/$branch" >&/dev/null &
+    open "$pr_url" >&/dev/null &
     disown
 }
 
