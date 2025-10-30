@@ -91,7 +91,7 @@ function push_with_pr_number()
     pr_branch="$(jq -r .head.ref "$json")"
 
     echo "Pushing to branch '$pr_branch' at $pr_repo"
-    git push "$pr_repo" "HEAD:$pr_branch"
+    git push "$pr_repo" "HEAD:$pr_branch" "@$"
 
     rm "$json"
 }
@@ -102,10 +102,11 @@ if [ $# == 0 ]; then
 elif [ $# == 2 ] && [ "$1" == "checkout" ] && [[ "$2" =~ ^[0-9]+$ ]]; then
     checkout_with_pr_number "$2"
 elif [ $# == 2 ] && [ "$1" == "push" ] && [[ "$2" =~ ^[0-9]+$ ]]; then
-    push_with_pr_number "$2"
+    shift
+    push_with_pr_number "$@"
 else
     echo "Usage:"
-    echo "  $PROGRAM_NAME               # make pull request"
-    echo "  $PROGRAM_NAME checkout 123  # look at else's pull request locally"
-    echo "  $PROGRAM_NAME push 123      # push your commits into someone else's pull request"
+    echo "  $PROGRAM_NAME                             # make pull request"
+    echo "  $PROGRAM_NAME checkout 123                # look at else's pull request locally"
+    echo "  $PROGRAM_NAME push 123 [push options]     # push to someone else's pull request"
 fi
